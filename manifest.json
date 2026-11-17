@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/t8y2/dbx/plugin-sdk-v1/plugins/manifest.schema.json",
+  "manifest_version": 1,
+  "id": "com.naivemap.dbx-postgis-raster-viewer",
+  "name": "PostGIS Raster Viewer",
+  "version": "0.2.0",
+  "publisher": "clog",
+  "description": "Raster result view for PostGIS: client-side WKB decode, image rendering, pixel-value grid and per-band statistics.",
+  "icon": "assets/plugin.svg",
+  "engines": {
+    "dbx": ">=0.5.68",
+    "host_api": "1.0"
+  },
+  "permissions": [
+    "host.workbench",
+    "host.data:read",
+    "host.connections:read"
+  ],
+  "entrypoints": {
+    "ui": {
+      "root": "ui",
+      "entry": "ui/index.html"
+    }
+  },
+  "contributions": [
+    {
+      "type": "result-view",
+      "id": "com.clog.ouranos.postgis-raster.view",
+      "label": "栅格视图",
+      "description": "解码结果集中的 PostGIS raster：影像渲染、像元值表格与波段统计。",
+      "icon": "assets/plugin.svg"
+    },
+    {
+      "type": "workbench",
+      "id": "com.clog.ouranos.postgis-raster.workbench",
+      "label": "PostGIS Raster Viewer",
+      "description": "Open external raster WKB data (paste or file) in the full rendering workbench.",
+      "icon": "assets/plugin.svg"
+    }
+  ],
+  "localizations": {
+    "zh-CN": {
+      "name": "PostGIS Raster Viewer",
+      "description": "查询结果视图，客户端解码 PostGIS raster，支持影像渲染、像元值表格与波段统计。",
+      "contributions": {
+        "com.clog.ouranos.postgis-raster.view": {
+          "label": "栅格视图",
+          "description": "解码结果集中的 PostGIS raster：影像渲染、像元值表格与波段统计。"
+        },
+        "com.clog.ouranos.postgis-raster.workbench": {
+          "label": "PostGIS Raster Viewer",
+          "description": "粘贴或打开外部栅格 WKB 数据，在完整工作台中渲染与统计。"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,383 @@
+/* ------------------------------------------------------------------ 主题 */
+
+:root {
+  color-scheme: light dark;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  /* 设计令牌：浅灰画布底 + 白色卡片 + 薄荷绿选中态（对齐 postgis-viewer 栅格视图参考） */
+  --pv-app: color-mix(in srgb, CanvasText 5%, Canvas);
+  --pv-card: Canvas;
+  --pv-text: CanvasText;
+  --pv-muted: color-mix(in srgb, CanvasText 55%, Canvas);
+  --pv-surface: color-mix(in srgb, CanvasText 3%, var(--pv-card));
+  --pv-surface-strong: color-mix(in srgb, CanvasText 6%, var(--pv-card));
+  --pv-border: color-mix(in srgb, CanvasText 12%, Canvas);
+  --pv-border-strong: color-mix(in srgb, CanvasText 24%, Canvas);
+  --pv-accent: #0f6e56;
+  --pv-accent-soft: color-mix(in srgb, var(--pv-accent) 14%, var(--pv-card));
+  --pv-radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pv-app: Canvas;
+    --pv-card: color-mix(in srgb, CanvasText 6%, Canvas);
+    --pv-surface: color-mix(in srgb, CanvasText 5%, var(--pv-card));
+    --pv-surface-strong: color-mix(in srgb, CanvasText 9%, var(--pv-card));
+    --pv-border: color-mix(in srgb, CanvasText 20%, Canvas);
+    --pv-border-strong: color-mix(in srgb, CanvasText 34%, Canvas);
+    --pv-accent-soft: color-mix(in srgb, var(--pv-accent) 26%, var(--pv-card));
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* hidden 属性必须永远生效：下面大量组件用 display:flex/grid 布局，author 样式
+   会覆盖 UA 对 [hidden] 的 display:none，导致 wb-empty / view-grid 等隐藏态失效。 */
+[hidden] { display: none !important; }
+
+body { margin: 0; background: Canvas; color: CanvasText; }
+
+body.wb-mode { overflow: hidden; height: 100vh; display: flex; flex-direction: column; background: var(--pv-app); }
+
+/* 工作台根：必须约束在视口内（flex:1 + min-height:0），否则被长表格的
+   min-content 撑开，整条 flex 高度链失效、grid-wrap 永远装得下全部行，
+   像元值表滚动条消失。 */
+#workbench { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+button {
+  border: 0; border-radius: 8px; padding: 7px 14px; cursor: pointer;
+  background: var(--pv-accent); color: white; font: inherit; font-size: 13px; font-weight: 600;
+}
+button.ghost { background: var(--pv-card); border: 1px solid var(--pv-border); color: inherit; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+select {
+  font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--pv-border-strong);
+  background: var(--pv-card); color: inherit; max-width: 100%;
+}
+
+/* -------------------------------------------------------------- 工作台骨架 */
+
+.wb-toolbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 6px 12px; flex: none;
+}
+.wb-title { font-size: 15px; font-weight: 700; }
+.wb-source {
+  flex: 1; min-width: 0; font-size: 12px; color: var(--pv-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.wb-notice {
+  margin: 0 16px 10px; padding: 8px 12px; border-radius: var(--pv-radius); font-size: 13px;
+  border: 1px solid color-mix(in srgb, #e5484d 35%, transparent);
+}
+.wb-notice.danger { background: color-mix(in srgb, #e5484d 12%, transparent); color: #e5484d; }
+
+.wb-layout {
+  flex: 1; min-height: 0; display: grid; gap: 10px; padding: 0 12px;
+  grid-template-columns: 250px minmax(0, 1fr) 310px;
+}
+
+/* 三栏骨架：左/中为整卡；右栏拆成多个独立卡片（.wb-side 自身透明） */
+.wb-panel {
+  min-height: 0; display: flex; flex-direction: column; gap: 8px;
+  padding: 10px; border-radius: var(--pv-radius);
+  background: var(--pv-card); border: 1px solid var(--pv-border);
+}
+.wb-side { background: none; border: 0; padding: 0; gap: 10px; overflow-y: auto; }
+.wb-side section {
+  flex: none; display: flex; flex-direction: column; gap: 8px;
+  padding: 10px; border-radius: var(--pv-radius);
+  background: var(--pv-card); border: 1px solid var(--pv-border);
+}
+.wb-panel-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  color: var(--pv-muted); flex: none;
+}
+
+/* 左栏：数据源信息 + 数据集列表 */
+.source-info {
+  flex: none; margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px;
+  padding: 8px 10px; border-radius: 5px; background: var(--pv-surface);
+  font-size: 11px;
+}
+.source-info dt { color: var(--pv-muted); white-space: nowrap; }
+.source-info dd {
+  margin: 0; text-align: right; font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.dataset-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: grid; gap: 4px; align-content: start; }
+.dataset-item {
+  display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center;
+  width: 100%;
+  padding: 6px; border-radius: var(--pv-radius); cursor: pointer;
+  border: 1px solid transparent;
+  background: var(--pv-surface);
+  font: inherit; color: inherit; text-align: left;
+}
+.dataset-item:hover { background: var(--pv-surface-strong); }
+.dataset-item.active {
+  border-color: var(--pv-accent);
+  background: var(--pv-accent-soft);
+}
+.dataset-thumb {
+  width: 40px; height: 40px; border-radius: 6px; background:
+    repeating-conic-gradient(color-mix(in srgb, CanvasText 8%, var(--pv-card)) 0 25%, var(--pv-card) 0 50%) 0 0 / 12px 12px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.dataset-thumb canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+.dataset-info { min-width: 0; display: grid; gap: 2px; }
+.dataset-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dataset-sub { font-size: 11px; color: var(--pv-muted); font-variant-numeric: tabular-nums; }
+
+/* 中栏：视图 */
+.wb-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.view-tabs {
+  display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px;
+  background: var(--pv-surface-strong); flex: none; align-self: flex-start;
+}
+.view-tabs button {
+  padding: 5px 14px; font-size: 12px; font-weight: 600;
+  background: transparent; color: var(--pv-muted); border-radius: 6px;
+}
+.view-tabs button.active { background: var(--pv-card); color: CanvasText; box-shadow: 0 0 0 1px var(--pv-border); }
+
+.view-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.view-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.canvas-wrap {
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--pv-radius); overflow: auto;
+  border: 1px solid var(--pv-border);
+  background:
+    repeating-conic-gradient(color-mix(in srgb, CanvasText 6%, var(--pv-card)) 0 25%, var(--pv-card) 0 50%) 0 0 / 20px 20px;
+}
+#raster-canvas {
+  display: block; /* 消除行内基线间隙，保证 frame 与画布严格等高（选中框对齐） */
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+/* 影像点击选中：overlay 高亮标记（与像元值表 is-active 选中样式一致，随画布缩放自适应） */
+.canvas-frame { position: relative; display: inline-block; }
+.pixel-marker {
+  position: absolute; pointer-events: none;
+  min-width: 3px; min-height: 3px;
+  outline: 2px solid var(--pv-accent); outline-offset: -2px;
+}
+
+.probe-bar { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.probe {
+  flex: 1 1 auto; min-width: 0; padding: 6px 10px; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-variant-numeric: tabular-nums; color: var(--pv-muted);
+  white-space: nowrap; overflow-x: auto; border-radius: 5px;
+  background: var(--pv-surface);
+}
+
+/* 行列号定位（对齐 postgis-viewer 的跳转控件） */
+.jump { flex: none; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--pv-muted); }
+.jump input {
+  width: 60px; font: inherit; font-size: 11.5px; padding: 2px 5px;
+  border-radius: 5px; border: 1px solid var(--pv-border-strong);
+  background: var(--pv-card); color: inherit;
+}
+.jump button { padding: 3px 10px; font-size: 11.5px; font-weight: normal; }
+/* 像元值小数位选择（与 jump 控件同风格） */
+.decimals { flex: none; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--pv-muted); }
+.decimals select {
+  font: inherit; font-size: 11.5px; padding: 2px 5px;
+  border-radius: 5px; border: 1px solid var(--pv-border-strong);
+  background: var(--pv-card); color: inherit;
+}
+
+/* 像元值表（PixelGrid 双向虚拟化：spacer 恒定撑出总滚动范围，layer 仅承载
+   可见窗口内的绝对定位单元格；滚动全程 spacer 尺寸不变，无滚动锚定问题。
+   表头「冻结」由 JS 把表头单元格锚在 scrollLeft/scrollTop 上实现） */
+.grid-wrap {
+  position: relative; flex: 1; min-height: 0; overflow: auto;
+  border: 1px solid var(--pv-border); border-radius: var(--pv-radius);
+  background: var(--pv-card);
+}
+.grid__spacer { position: absolute; top: 0; left: 0; pointer-events: none; }
+.grid__layer { position: absolute; top: 0; left: 0; }
+/* 像元值表（PixelGrid 双向虚拟化：spacer 恒定撑出总滚动范围，layer 仅承载
+   可见窗口内的绝对定位单元格；滚动全程 spacer 尺寸不变，无滚动锚定问题。
+   表头「冻结」由 JS 把表头单元格锚在 scrollLeft/scrollTop 上实现；
+   行列号与 PostGIS 像元坐标一致从 1 起，居中、不加粗；
+   值单元格 hover 浅灰、点击 is-active 薄荷绿描边固定高亮） */
+.grid__cell {
+  position: absolute; box-sizing: border-box; display: flex; align-items: center;
+  justify-content: flex-end; padding: 0 8px; overflow: hidden;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: var(--pv-card);
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 8%, var(--pv-border));
+  border-right: 1px solid color-mix(in srgb, CanvasText 6%, var(--pv-border));
+}
+.grid__cell--head {
+  z-index: 2; justify-content: center; padding: 0;
+  font-size: 10px; color: var(--pv-muted);
+  background: var(--pv-surface-strong);
+}
+.grid__cell--corner { z-index: 3; }
+.grid__cell--value { cursor: crosshair; }
+.grid__cell--value:hover { background: var(--pv-surface-strong); }
+.grid__cell--value.is-nodata { opacity: .4; }
+.grid__cell.is-active {
+  outline: 2px solid var(--pv-accent); outline-offset: -2px; font-weight: 600;
+}
+
+/* 右栏 */
+.meta-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+.meta-grid div {
+  display: contents;
+}
+.meta-grid .k { font-size: 11px; line-height: 1.6; color: var(--pv-text); white-space: nowrap; }
+.meta-grid .v { font-size: 11px; line-height: 1.6; color: var(--pv-muted); font-variant-numeric: tabular-nums; word-break: break-all; text-align: right; }
+
+/* 渲染控件：两列网格（与元数据面板同风格）：标签列左对齐自适应，控件列 1fr 统一宽度 */
+.render-controls {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px 10px; align-items: center; font-size: 12px;
+}
+.render-controls label,
+.render-controls .readonly-row { display: contents; }
+.render-controls label > span,
+.render-controls .readonly-row > span { white-space: nowrap; }
+.render-controls select,
+.render-controls input[type="text"] { width: 100%; color: var(--pv-muted); }
+.render-controls input[type="text"] {
+  font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--pv-border-strong);
+  background: var(--pv-card); text-align: right;
+}
+.render-controls input[type="text"]::placeholder { color: var(--pv-muted); opacity: .7; }
+/* 波段 nodata 只读展示行：值落于控件列，右对齐展示 */
+.render-controls .readonly-value {
+  text-align: right; color: var(--pv-muted); font-variant-numeric: tabular-nums;
+}
+
+/* 色带：渐变色块选择（.ramp-row 子项直接参与渲染控件网格） */
+.ramp-row { display: contents; }
+.ramp-row > span { color: var(--pv-text); white-space: nowrap; }
+.ramp-swatches { display: flex; gap: 3px; min-width: 0; }
+.swatch {
+  flex: 1 1 0; min-width: 0; height: 18px; padding: 0;
+  border: 1px solid var(--pv-border); border-radius: 3px;
+  cursor: pointer; background: #888;
+}
+.swatch:hover { border-color: var(--pv-border-strong); }
+.swatch.selected { border-color: var(--pv-muted); box-shadow: 0 0 0 1px CanvasText; }
+
+/* 色带预览条 + 拉伸区间标注：置于控件列，与色块行收紧间距形成分组 */
+.ramp-preview-wrap { grid-column: 2; display: grid; gap: 3px; margin-top: -3px; }
+#ramp-preview {
+  width: 100%; height: 10px; display: block; border-radius: 3px;
+  outline: 1px solid var(--pv-border-strong);
+}
+.ramp-range {
+  display: flex; justify-content: space-between; gap: 8px;
+  font: 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-variant-numeric: tabular-nums; color: var(--pv-muted);
+}
+.ramp-range span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 波段统计表（转置布局：统计项为行、波段为列）：横向滚动限制在表格区域内，避免撑破整个右栏 */
+.stats-scroll { overflow-x: auto; }
+table.stats {
+  border-collapse: separate; border-spacing: 0; /* sticky 首列需 separate，避免边框随滚动丢失 */
+  font-size: 11px; font-variant-numeric: tabular-nums;
+}
+table.stats th, table.stats td {
+  padding: 4px 8px; text-align: right;
+  border-bottom: 1px solid var(--pv-border);
+  color: var(--pv-muted);
+  white-space: nowrap;
+}
+table.stats th { color: var(--pv-text); font-weight: normal; background: var(--pv-surface); }
+table.stats th:first-child, table.stats td:first-child { text-align: left; }
+/* 首列统计标签：sticky + 不透明背景（继承 th 的 surface），横向滚动时保持可见 */
+table.stats .label { position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--pv-border); }
+/* 波段列统一最小宽度，数值列整齐可扫读 */
+table.stats th:not(.label), table.stats td:not(.label) { min-width: 56px; }
+/* 当前波段列高亮（表头 + 数据格） */
+table.stats th.current, table.stats td.current { background: var(--pv-accent-soft); }
+
+/* 空态 / 等待态 */
+.wb-empty, .wb-loading {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 40px; text-align: center;
+}
+.wb-empty h2 { margin: 0; font-size: 17px; }
+.wb-empty p { margin: 0; max-width: 460px; font-size: 13px; line-height: 1.7; color: var(--pv-muted); }
+.wb-empty pre {
+  margin: 0; padding: 10px 14px; border-radius: 8px; font-size: 12px; text-align: left;
+  background: var(--pv-surface); border: 1px solid var(--pv-border); overflow-x: auto; max-width: 90%;
+}
+.wb-empty .spacer { height: 8px; }
+
+/* ---------------------------------------------------------------- 输入页 */
+
+body.input-mode { min-height: 100vh; display: flex; flex-direction: column; padding: 24px; overflow-y: auto; }
+.input-main { max-width: 860px; width: 100%; margin: auto; display: grid; gap: 20px; }
+.input-hero { text-align: center; display: grid; gap: 6px; }
+.input-hero h1 { margin: 0; font-size: 26px; }
+.input-hero .hint { font-size: 13px; }
+.input-card {
+  display: grid; gap: 12px; padding: 16px;
+  background: var(--pv-card); border: 1px solid var(--pv-border); border-radius: 10px;
+  box-shadow: 0 1px 3px color-mix(in srgb, CanvasText 8%, transparent);
+}
+.input-card.dragover { border-color: var(--pv-accent); background: var(--pv-accent-soft); }
+.input-tabs { display: flex; gap: 8px; justify-content: center; }
+.input-tab {
+  padding: 7px 18px; font-size: 13px; cursor: pointer; color: inherit;
+  border: 1px solid var(--pv-border); border-radius: 8px; background: var(--pv-surface);
+}
+.input-tab[aria-selected="true"] {
+  border-color: var(--pv-accent); background: var(--pv-accent-soft);
+  color: var(--pv-accent); font-weight: 600;
+}
+.sql-row { display: flex; gap: 8px; }
+.sql-row select {
+  flex: 1; padding: 8px 10px; font-size: 13px; color: inherit;
+  border: 1px solid var(--pv-border-strong); border-radius: 8px; background: var(--pv-surface);
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+textarea {
+  width: 100%; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 10px; border-radius: 8px; resize: vertical;
+  border: 1px solid var(--pv-border-strong);
+  background: var(--pv-surface); color: inherit;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.input-feedback { display: grid; gap: 6px; min-height: 22px; }
+.input-ok {
+  margin: 0; font-size: 12.5px; padding: 6px 10px; border-radius: 5px;
+  color: var(--pv-accent); background: var(--pv-accent-soft);
+}
+.error { margin: 0; color: #e5484d; font-size: 13px; word-break: break-all; }
+.hint { margin: 0; font-size: 12px; color: var(--pv-muted); }
+
+/* InputPage → Workbench 直通：补齐 body.wb-mode 下 #app 的高度链
+   （#workbench 的 flex:1 需要 flex 父级逐级传导到视口）。 */
+body.wb-mode #app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.input-wb-bar { 
+  flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-bottom: 1px solid var(--pv-border);
+  background: var(--pv-surface);
+}
+.input-wb-shell { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* 窄屏折叠：三栏 → 单列 */
+@media (max-width: 980px) {
+  body.wb-mode { overflow-y: auto; height: auto; min-height: 100vh; }
+  .wb-layout { grid-template-columns: 1fr; }
+  .dataset-list { max-height: 220px; }
+  .wb-main { min-height: 420px; }
+}
