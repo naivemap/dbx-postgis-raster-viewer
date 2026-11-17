@@ -1,6 +1,7 @@
 {
-  "name": "com.clog.ouranos.postgis-raster",
+  "name": "com.naivemap.dbx-postgis-raster-viewer",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

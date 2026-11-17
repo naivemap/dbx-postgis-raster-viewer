@@ -3,8 +3,8 @@
   "manifest_version": 1,
   "id": "com.naivemap.dbx-postgis-raster-viewer",
   "name": "PostGIS Raster Viewer",
-  "version": "0.2.0",
-  "publisher": "clog",
+  "version": "0.1.0",
+  "publisher": "naivemap",
   "description": "Raster result view for PostGIS: client-side WKB decode, image rendering, pixel-value grid and per-band statistics.",
   "icon": "assets/plugin.svg",
   "engines": {
@@ -25,16 +25,16 @@
   "contributions": [
     {
       "type": "result-view",
-      "id": "com.clog.ouranos.postgis-raster.view",
-      "label": "栅格视图",
-      "description": "解码结果集中的 PostGIS raster：影像渲染、像元值表格与波段统计。",
+      "id": "com.naivemap.dbx-postgis-raster-viewer.view",
+      "label": "PostGIS Raster Viewer",
+      "description": "Decode PostGIS Raster from a result set: inspect metadata, statistics, and rendering.",
       "icon": "assets/plugin.svg"
     },
     {
       "type": "workbench",
-      "id": "com.clog.ouranos.postgis-raster.workbench",
+      "id": "com.naivemap.dbx-postgis-raster-viewer.workbench",
       "label": "PostGIS Raster Viewer",
-      "description": "Open external raster WKB data (paste or file) in the full rendering workbench.",
+      "description": "Paste or open PostGIS Raster WKB, or run SQL against a PostGIS connection, to inspect metadata, statistics, and rendering in the workbench",
       "icon": "assets/plugin.svg"
     }
   ],
@@ -43,13 +43,13 @@
       "name": "PostGIS Raster Viewer",
       "description": "查询结果视图，客户端解码 PostGIS raster，支持影像渲染、像元值表格与波段统计。",
       "contributions": {
-        "com.clog.ouranos.postgis-raster.view": {
+        "com.naivemap.dbx-postgis-raster-viewer.view": {
           "label": "栅格视图",
-          "description": "解码结果集中的 PostGIS raster：影像渲染、像元值表格与波段统计。"
+          "description": "解码结果集中的 PostGIS Raster：查看元数据、统计与渲染。"
         },
-        "com.clog.ouranos.postgis-raster.workbench": {
+        "com.naivemap.dbx-postgis-raster-viewer.workbench": {
           "label": "PostGIS Raster Viewer",
-          "description": "粘贴或打开外部栅格 WKB 数据，在完整工作台中渲染与统计。"
+          "description": "粘贴或打开 PostGIS Raster WKB，或连接数据库执行 SQL 查询，在工作台中查看元数据、统计与渲染"
         }
       }
     }

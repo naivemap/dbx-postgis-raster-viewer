@@ -235,7 +235,7 @@
 <main class="input-main" hidden={workbenchOpen}>
   <header class="input-hero">
     <h1>PostGIS Raster Viewer</h1>
-    <p class="hint">粘贴或打开 PostGIS Raster WKB，在工作台中查看元数据、统计与渲染</p>
+    <p class="hint">粘贴或打开 PostGIS Raster WKB，或直接连接数据库执行 SQL 查询，在工作台中查看元数据、统计与渲染</p>
   </header>
 
   {#if sqlSupported}
